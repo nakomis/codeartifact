@@ -7,10 +7,12 @@
 # Your project's .cargo/config.toml must also contain:
 #
 #   [registries.nakomis-codeartifact]
+#   index = "sparse+https://artifacts.sandbox.nakomis.com/cargo/cargo/"
 #   credential-provider = "cargo:token"
 #
-# (Cargo 1.74+ requires an explicit credential-provider for authenticated
-# registries. cargo:token reads the CARGO_REGISTRIES_*_TOKEN env var.)
+# Both keys must be present — Cargo 1.74+ won't associate the credential-provider
+# with a registry that has no index in config.toml (env-var-only index is not enough).
+# The sandbox URL is a sensible default; cargo_authenticate overrides it at runtime.
 #
 # Usage in your project's scripts:
 #   source ./scripts/codeartifact.sh
