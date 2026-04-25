@@ -19,8 +19,6 @@ export interface ProxyStackProps extends cdk.StackProps {
    * nakomis-123456789012.d.codeartifact.eu-west-2.amazonaws.com
    */
   codeArtifactHost: string;
-  /** Path prefix on the CodeArtifact origin, e.g. /cargo/cargo/ */
-  originPath: string;
 }
 
 export class ProxyStack extends cdk.Stack {
@@ -35,7 +33,6 @@ export class ProxyStack extends cdk.Stack {
       certificate: props.certificate,
       defaultBehavior: {
         origin: new origins.HttpOrigin(props.codeArtifactHost, {
-          originPath: props.originPath,
           protocolPolicy: cf.OriginProtocolPolicy.HTTPS_ONLY,
         }),
         // Never cache — CodeArtifact manages its own caching and responses

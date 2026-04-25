@@ -55,7 +55,6 @@ new ProxyStack(app, 'CodeArtifactProxyStack', {
   domainName: artifactsDomain,
   rootDomain,
   codeArtifactHost: codeArtifactStack.domainHost,
-  originPath: '/cargo/cargo/',
   description: `CloudFront proxy for ${artifactsDomain} → CodeArtifact (${deployEnv})`,
   crossRegionReferences: true,
 });

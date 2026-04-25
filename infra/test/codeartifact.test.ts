@@ -28,7 +28,6 @@ function makeProxyStack(deployEnv: 'sandbox' | 'prod') {
     domainName: deployEnv === 'prod' ? 'artifacts.nakomis.com' : 'artifacts.sandbox.nakomis.com',
     rootDomain: deployEnv === 'prod' ? 'nakomis.com' : 'sandbox.nakomis.com',
     codeArtifactHost: 'nakomis-sandbox-123456789012.d.codeartifact.eu-west-2.amazonaws.com',
-    originPath: '/cargo/cargo/',
     crossRegionReferences: true,
   });
 }
