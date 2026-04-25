@@ -147,6 +147,10 @@ function makeGithubCiStack(deployEnv: 'sandbox' | 'prod') {
         repo: 'nakomis/pish',
         policyArns: [caStack.cargoReadPolicyArn],
       },
+      {
+        repo: 'nakomis/codeartifact',
+        policyArns: [],
+      },
     ],
   });
 }
@@ -182,6 +186,35 @@ describe('GithubCiStack (sandbox)', () => {
   test('outputs role ARN for nakomis/pish', () => {
     template.hasOutput('nakomispishRoleArn', {});
   });
+
+  test('creates nakomis-codeartifact-github-ci-sandbox IAM role', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'nakomis-codeartifact-github-ci-sandbox',
+    });
+  });
+
+  test('codeartifact role trust policy scoped to nakomis/codeartifact repo', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      AssumeRolePolicyDocument: {
+        Statement: [
+          {
+            Condition: {
+              StringEquals: {
+                'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+              },
+              StringLike: {
+                'token.actions.githubusercontent.com:sub': 'repo:nakomis/codeartifact:*',
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  test('outputs role ARN for nakomis/codeartifact', () => {
+    template.hasOutput('nakomiscodeartifactRoleArn', {});
+  });
 });
 
 describe('GithubCiStack (prod)', () => {
@@ -190,6 +223,12 @@ describe('GithubCiStack (prod)', () => {
   test('creates nakomis-pish-github-ci-prod IAM role', () => {
     template.hasResourceProperties('AWS::IAM::Role', {
       RoleName: 'nakomis-pish-github-ci-prod',
+    });
+  });
+
+  test('creates nakomis-codeartifact-github-ci-prod IAM role', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'nakomis-codeartifact-github-ci-prod',
     });
   });
 });

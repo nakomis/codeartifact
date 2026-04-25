@@ -76,6 +76,11 @@ new GithubCiStack(app, 'CodeArtifactGithubCiStack', {
       policyArns: [codeArtifactStack.cargoReadPolicyArn],
       description: `Assumed by pish GitHub Actions CI to pull from CodeArtifact (${deployEnv})`,
     },
+    {
+      repo: 'nakomis/codeartifact',
+      policyArns: [],
+      description: `Assumed by codeartifact GitHub Actions CI to run cdk synth (${deployEnv})`,
+    },
   ],
   description: `GitHub Actions OIDC roles for CodeArtifact access (${deployEnv})`,
 });
