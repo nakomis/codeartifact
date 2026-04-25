@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Template } from 'aws-cdk-lib/assertions';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
 import { CertificateStack } from '../lib/certificate-stack';
@@ -150,6 +151,14 @@ function makeGithubCiStack(deployEnv: 'sandbox' | 'prod') {
       {
         repo: 'nakomis/codeartifact',
         policyArns: [],
+        inlinePolicies: {
+          CdkDeploy: new iam.PolicyDocument({
+            statements: [new iam.PolicyStatement({
+              actions: ['sts:AssumeRole'],
+              resources: [`arn:aws:iam::123456789012:role/cdk-hnb659fds-*`],
+            })],
+          }),
+        },
       },
     ],
   });
@@ -214,6 +223,21 @@ describe('GithubCiStack (sandbox)', () => {
 
   test('outputs role ARN for nakomis/codeartifact', () => {
     template.hasOutput('nakomiscodeartifactRoleArn', {});
+  });
+
+  test('codeartifact role has inline policy to assume CDK bootstrap roles', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'nakomis-codeartifact-github-ci-sandbox',
+      Policies: [{
+        PolicyName: 'CdkDeploy',
+        PolicyDocument: {
+          Statement: [{
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+          }],
+        },
+      }],
+    });
   });
 });
 

@@ -15,6 +15,8 @@
     "synth-prod": "NPM_ENVIRONMENT=prod cdk synth --profile nakom.is --all",
     "destroy-sandbox": "NPM_ENVIRONMENT=sandbox cdk destroy --profile nakom.is-sandbox --all",
     "destroy-prod": "NPM_ENVIRONMENT=prod cdk destroy --profile nakom.is --all",
+    "ci-deploy-sandbox": "NPM_ENVIRONMENT=sandbox cdk deploy --all --require-approval never --output cdk-deploy.out",
+    "ci-deploy-prod": "NPM_ENVIRONMENT=prod cdk deploy --all --require-approval never --output cdk-deploy.out",
     "update-dependencies": "npx -y npm-check-updates -u && npm i"
   },
   "dependencies": {
