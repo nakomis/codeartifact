@@ -7,7 +7,7 @@ import * as cm from 'aws-cdk-lib/aws-certificatemanager';
 
 function makeCodeArtifactStack(deployEnv: 'sandbox' | 'prod') {
   const app = new cdk.App();
-  return new CodeArtifactStack(app, 'TestStack', {
+  return new CodeArtifactStack(app, 'CodeArtifactTestStack', {
     env: { account: '123456789012', region: 'eu-west-2' },
     deployEnv,
   });

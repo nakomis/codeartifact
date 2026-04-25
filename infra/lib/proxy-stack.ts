@@ -29,7 +29,7 @@ export class ProxyStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ProxyStackProps) {
     super(scope, id, props);
 
-    const distribution = new cf.Distribution(this, 'Distribution', {
+    const distribution = new cf.Distribution(this, 'CodeArtifactDistribution', {
       comment: `CodeArtifact Cargo registry proxy (${props.domainName})`,
       domainNames: [props.domainName],
       certificate: props.certificate,
@@ -54,13 +54,13 @@ export class ProxyStack extends cdk.Stack {
       domainName: props.rootDomain,
     });
 
-    new route53.ARecord(this, 'AliasA', {
+    new route53.ARecord(this, 'CodeArtifactAliasA', {
       recordName: props.domainName,
       zone: hostedZone,
       target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
     });
 
-    new route53.AaaaRecord(this, 'AliasAAAA', {
+    new route53.AaaaRecord(this, 'CodeArtifactAliasAAAA', {
       recordName: props.domainName,
       zone: hostedZone,
       target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),

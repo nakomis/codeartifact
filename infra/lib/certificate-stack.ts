@@ -19,7 +19,7 @@ export class CertificateStack extends cdk.Stack {
       domainName: props.rootDomain,
     });
 
-    this.certificate = new cm.Certificate(this, 'Certificate', {
+    this.certificate = new cm.Certificate(this, 'CodeArtifactCertificate', {
       domainName: props.domainName,
       validation: cm.CertificateValidation.fromDns(hostedZone),
     });

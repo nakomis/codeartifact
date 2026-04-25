@@ -11,9 +11,10 @@ export class CodeArtifactStack extends cdk.Stack {
   /** ARN of the cargo repository — exported for use by CI stacks. */
   public readonly cargoRepoArn: string;
   /**
-   * Hostname of the CodeArtifact domain endpoint, e.g.
-   * nakomis-123456789012.d.codeartifact.eu-west-2.amazonaws.com
-   * Pass this to ProxyStack as codeArtifactHost.
+   * Raw CodeArtifact endpoint hostname — the CloudFront origin, NOT the public-facing
+   * custom domain.  e.g. nakomis-sandbox-123456789012.d.codeartifact.eu-west-2.amazonaws.com
+   * CodeArtifact doesn't support custom domains natively, so ProxyStack puts CloudFront
+   * in front and exposes artifacts.{sandbox.}nakomis.com to clients instead.
    */
   public readonly domainHost: string;
 
@@ -27,7 +28,7 @@ export class CodeArtifactStack extends cdk.Stack {
 
     this.domainHost = `${domainName}-${this.account}.d.codeartifact.${this.region}.amazonaws.com`;
 
-    const domain = new codeartifact.CfnDomain(this, 'Domain', {
+    const domain = new codeartifact.CfnDomain(this, 'CodeArtifactDomain', {
       domainName,
     });
 
