@@ -4,6 +4,7 @@ import { CodeArtifactError } from '../lib/codeartifact-error';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
 import { CertificateStack } from '../lib/certificate-stack';
 import { ProxyStack } from '../lib/proxy-stack';
+import { GithubCiStack } from '../lib/github-ci-stack';
 
 const londonEnv = { env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION } };
 const nvirginiaEnv = { env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: 'us-east-1' } };
@@ -31,6 +32,12 @@ const isProd = deployEnv === 'prod';
 const rootDomain = isProd ? 'nakomis.com' : 'sandbox.nakomis.com';
 const artifactsDomain = `artifacts.${rootDomain}`;
 
+// GitHub OIDC provider ARN — one per account; prod already exists, sandbox is created by sandboxsite.
+const sandboxAccountId = '975050268859';
+const prodAccountId = '637423226886';
+const accountId = isProd ? prodAccountId : sandboxAccountId;
+const githubOidcProviderArn = `arn:aws:iam::${accountId}:oidc-provider/token.actions.githubusercontent.com`;
+
 const app = new cdk.App();
 
 const codeArtifactStack = new CodeArtifactStack(app, 'CodeArtifactStack', {
@@ -57,4 +64,12 @@ new ProxyStack(app, 'CodeArtifactProxyStack', {
   codeArtifactHost: codeArtifactStack.domainHost,
   description: `CloudFront proxy for ${artifactsDomain} → CodeArtifact (${deployEnv})`,
   crossRegionReferences: true,
+});
+
+new GithubCiStack(app, 'CodeArtifactGithubCiStack', {
+  ...londonEnv,
+  deployEnv,
+  githubOidcProviderArn,
+  cargoReadPolicyArn: codeArtifactStack.cargoReadPolicyArn,
+  description: `GitHub Actions OIDC roles for CodeArtifact access (${deployEnv})`,
 });
