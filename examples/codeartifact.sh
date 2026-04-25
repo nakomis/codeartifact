@@ -6,12 +6,14 @@
 #
 # Your project's .cargo/config.toml must also contain:
 #
-#   [registries.nakomis-codeartifact]
+#   [registries.nakomis_codeartifact]
 #   index = "sparse+https://artifacts.sandbox.nakomis.com/cargo/cargo/"
 #   credential-provider = "cargo:token"
 #
 # Both keys must be present — Cargo 1.74+ won't associate the credential-provider
 # with a registry that has no index in config.toml (env-var-only index is not enough).
+# The registry name MUST use underscore (nakomis_codeartifact) to match what Cargo
+# derives from the CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_* env vars (hyphens → underscores).
 # The sandbox URL is a sensible default; cargo_authenticate overrides it at runtime.
 #
 # Usage in your project's scripts:
@@ -56,7 +58,7 @@ cargo_authenticate() {
     --domain "$domain" --query authorizationToken --output text) || return 1
   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_INDEX="$index"
   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_TOKEN="Bearer ${token}"
-  echo "==> Authenticated to nakomis-codeartifact (${env}). Token valid for 12 hours." >&2
+  echo "==> Authenticated to nakomis_codeartifact (${env}). Token valid for 12 hours." >&2
 }
 
 # Authenticate then publish a crate.
@@ -64,7 +66,7 @@ cargo_publish() {
   local package="${1:?Usage: cargo_publish <package> [prod]}"
   local env="${2:-sandbox}"
   cargo_authenticate "$env" || return 1
-  cargo publish -p "$package" --registry nakomis-codeartifact
+  cargo publish -p "$package" --registry nakomis_codeartifact
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
