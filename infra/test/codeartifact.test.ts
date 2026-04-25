@@ -142,16 +142,21 @@ function makeGithubCiStack(deployEnv: 'sandbox' | 'prod') {
     env: { account: '123456789012', region: 'eu-west-2' },
     deployEnv,
     githubOidcProviderArn: `arn:aws:iam::${accountId}:oidc-provider/token.actions.githubusercontent.com`,
-    cargoReadPolicyArn: caStack.cargoReadPolicyArn,
+    roles: [
+      {
+        repo: 'nakomis/pish',
+        policyArns: [caStack.cargoReadPolicyArn],
+      },
+    ],
   });
 }
 
 describe('GithubCiStack (sandbox)', () => {
   const template = Template.fromStack(makeGithubCiStack('sandbox'));
 
-  test('creates pish-github-ci-sandbox IAM role', () => {
+  test('creates nakomis-pish-github-ci-sandbox IAM role', () => {
     template.hasResourceProperties('AWS::IAM::Role', {
-      RoleName: 'pish-github-ci-sandbox',
+      RoleName: 'nakomis-pish-github-ci-sandbox',
     });
   });
 
@@ -174,17 +179,17 @@ describe('GithubCiStack (sandbox)', () => {
     });
   });
 
-  test('outputs PishCiRoleArn', () => {
-    template.hasOutput('PishCiRoleArn', {});
+  test('outputs role ARN for nakomis/pish', () => {
+    template.hasOutput('nakomispishRoleArn', {});
   });
 });
 
 describe('GithubCiStack (prod)', () => {
   const template = Template.fromStack(makeGithubCiStack('prod'));
 
-  test('creates pish-github-ci-prod IAM role', () => {
+  test('creates nakomis-pish-github-ci-prod IAM role', () => {
     template.hasResourceProperties('AWS::IAM::Role', {
-      RoleName: 'pish-github-ci-prod',
+      RoleName: 'nakomis-pish-github-ci-prod',
     });
   });
 });
