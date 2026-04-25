@@ -4,6 +4,14 @@
 # Copy this file into your project and adapt as needed — do not source it
 # from this repo directly (paths break in CI).
 #
+# Your project's .cargo/config.toml must also contain:
+#
+#   [registries.nakomis-codeartifact]
+#   credential-provider = "cargo:token"
+#
+# (Cargo 1.74+ requires an explicit credential-provider for authenticated
+# registries. cargo:token reads the CARGO_REGISTRIES_*_TOKEN env var.)
+#
 # Usage in your project's scripts:
 #   source ./scripts/codeartifact.sh
 #   cargo_authenticate [prod]
