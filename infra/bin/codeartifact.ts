@@ -70,6 +70,12 @@ new GithubCiStack(app, 'CodeArtifactGithubCiStack', {
   ...londonEnv,
   deployEnv,
   githubOidcProviderArn,
-  cargoReadPolicyArn: codeArtifactStack.cargoReadPolicyArn,
+  roles: [
+    {
+      repo: 'nakomis/pish',
+      policyArns: [codeArtifactStack.cargoReadPolicyArn],
+      description: `Assumed by pish GitHub Actions CI to pull from CodeArtifact (${deployEnv})`,
+    },
+  ],
   description: `GitHub Actions OIDC roles for CodeArtifact access (${deployEnv})`,
 });
