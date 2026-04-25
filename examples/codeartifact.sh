@@ -29,8 +29,8 @@
 _codeartifact_env() {
   local env="${1:-sandbox}"
   case "$env" in
-    prod)    echo "nakom.is nakomis https://artifacts.nakomis.com/cargo/cargo/" ;;
-    sandbox) echo "nakom.is-sandbox nakomis-sandbox https://artifacts.sandbox.nakomis.com/cargo/cargo/" ;;
+    prod)    echo "nakom.is nakomis 637423226886 eu-west-2 https://artifacts.nakomis.com/cargo/cargo/" ;;
+    sandbox) echo "nakom.is-sandbox nakomis-sandbox 975050268859 eu-west-2 https://artifacts.sandbox.nakomis.com/cargo/cargo/" ;;
     *)
       echo "Unknown environment: '$env'. Use 'sandbox' (default) or 'prod'." >&2
       return 1
@@ -40,10 +40,12 @@ _codeartifact_env() {
 
 # Echo a raw bearer token (no "Bearer " prefix).
 codeartifact_token() {
-  local profile domain index
-  read -r profile domain index <<< "$(_codeartifact_env "${1:-sandbox}")" || return 1
+  local profile domain owner region index
+  read -r profile domain owner region index <<< "$(_codeartifact_env "${1:-sandbox}")" || return 1
   AWS_PROFILE="$profile" aws codeartifact get-authorization-token \
     --domain "$domain" \
+    --domain-owner "$owner" \
+    --region "$region" \
     --query authorizationToken \
     --output text
 }
@@ -52,10 +54,11 @@ codeartifact_token() {
 # Nothing is written to disk.
 cargo_authenticate() {
   local env="${1:-sandbox}"
-  local profile domain index token
-  read -r profile domain index <<< "$(_codeartifact_env "$env")" || return 1
+  local profile domain owner region index token
+  read -r profile domain owner region index <<< "$(_codeartifact_env "$env")" || return 1
   token=$(AWS_PROFILE="$profile" aws codeartifact get-authorization-token \
-    --domain "$domain" --query authorizationToken --output text) || return 1
+    --domain "$domain" --domain-owner "$owner" --region "$region" \
+    --query authorizationToken --output text) || return 1
   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_INDEX="$index"
   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_TOKEN="Bearer ${token}"
   echo "==> Authenticated to nakomis_codeartifact (${env}). Token valid for 12 hours." >&2
