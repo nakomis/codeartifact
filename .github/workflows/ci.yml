@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Check out the post-merge state on PRs so CI validates what will land on main,
+# not just the branch tip. Falls back to the commit SHA on push/workflow_dispatch.
+env:
+  CHECKOUT_REF: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/merge', github.event.pull_request.number) || github.sha }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,6 +20,8 @@ jobs:
         working-directory: infra
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -33,6 +40,8 @@ jobs:
         working-directory: infra
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -48,9 +57,9 @@ jobs:
         run: NPM_ENVIRONMENT=sandbox npx cdk synth --all --output cdk-synth.out
 
   deploy-sandbox:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    needs: [test, synth]
     runs-on: ubuntu-latest
+    needs: [test, synth]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     environment: sandbox
     permissions:
       id-token: write
@@ -60,6 +69,8 @@ jobs:
         working-directory: infra
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -75,9 +86,9 @@ jobs:
         run: npm run ci-deploy-sandbox
 
   deploy-production:
-    if: github.event_name == 'push'
-    needs: [deploy-sandbox]
     runs-on: ubuntu-latest
+    needs: [deploy-sandbox]
+    if: github.event_name == 'push'
     environment: production
     permissions:
       id-token: write
@@ -87,13 +98,15 @@ jobs:
         working-directory: infra
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: infra/package-lock.json
       - run: npm ci
-      - name: Configure AWS credentials (production)
+      - name: Configure AWS credentials (prod)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::637423226886:role/nakomis-codeartifact-github-ci-prod
