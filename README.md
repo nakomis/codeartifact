@@ -2,6 +2,14 @@
 
 AWS CDK infrastructure for a private Cargo registry backed by AWS CodeArtifact, with a CloudFront proxy to expose it at a custom domain.
 
+## Support
+
+If you find this useful, a small donation is very welcome:
+
+[![Donate via PayPal](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate?hosted_button_id=Q3BESC73EWVNN&custom=codeartifact)
+
+---
+
 ## Architecture
 
 ```
