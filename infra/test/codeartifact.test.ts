@@ -3,6 +3,7 @@ import { Template } from 'aws-cdk-lib/assertions';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
 import { CertificateStack } from '../lib/certificate-stack';
 import { ProxyStack } from '../lib/proxy-stack';
+import { GithubCiStack } from '../lib/github-ci-stack';
 import * as cm from 'aws-cdk-lib/aws-certificatemanager';
 
 function makeCodeArtifactStack(deployEnv: 'sandbox' | 'prod') {
@@ -127,5 +128,63 @@ describe('ProxyStack (sandbox)', () => {
 
   test('creates A and AAAA Route53 alias records', () => {
     template.resourceCountIs('AWS::Route53::RecordSet', 2);
+  });
+});
+
+function makeGithubCiStack(deployEnv: 'sandbox' | 'prod') {
+  const app = new cdk.App();
+  const caStack = new CodeArtifactStack(app, 'CodeArtifactTestStack', {
+    env: { account: '123456789012', region: 'eu-west-2' },
+    deployEnv,
+  });
+  const accountId = deployEnv === 'prod' ? '637423226886' : '975050268859';
+  return new GithubCiStack(app, 'GithubCiTestStack', {
+    env: { account: '123456789012', region: 'eu-west-2' },
+    deployEnv,
+    githubOidcProviderArn: `arn:aws:iam::${accountId}:oidc-provider/token.actions.githubusercontent.com`,
+    cargoReadPolicyArn: caStack.cargoReadPolicyArn,
+  });
+}
+
+describe('GithubCiStack (sandbox)', () => {
+  const template = Template.fromStack(makeGithubCiStack('sandbox'));
+
+  test('creates pish-github-ci-sandbox IAM role', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'pish-github-ci-sandbox',
+    });
+  });
+
+  test('role trust policy scoped to nakomis/pish repo', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      AssumeRolePolicyDocument: {
+        Statement: [
+          {
+            Condition: {
+              StringEquals: {
+                'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+              },
+              StringLike: {
+                'token.actions.githubusercontent.com:sub': 'repo:nakomis/pish:*',
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  test('outputs PishCiRoleArn', () => {
+    template.hasOutput('PishCiRoleArn', {});
+  });
+});
+
+describe('GithubCiStack (prod)', () => {
+  const template = Template.fromStack(makeGithubCiStack('prod'));
+
+  test('creates pish-github-ci-prod IAM role', () => {
+    template.hasResourceProperties('AWS::IAM::Role', {
+      RoleName: 'pish-github-ci-prod',
+    });
   });
 });

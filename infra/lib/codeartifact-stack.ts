@@ -10,6 +10,8 @@ export interface CodeArtifactStackProps extends cdk.StackProps {
 export class CodeArtifactStack extends cdk.Stack {
   /** ARN of the cargo repository — exported for use by CI stacks. */
   public readonly cargoRepoArn: string;
+  /** ARN of the CodeArtifactCargoRead-{env} managed policy. */
+  public readonly cargoReadPolicyArn: string;
   /**
    * Raw CodeArtifact endpoint hostname — the CloudFront origin, NOT the public-facing
    * custom domain.  e.g. nakomis-sandbox-123456789012.d.codeartifact.eu-west-2.amazonaws.com
@@ -109,6 +111,8 @@ export class CodeArtifactStack extends cdk.Stack {
         }),
       ],
     });
+
+    this.cargoReadPolicyArn = readPolicy.managedPolicyArn;
 
     // Outputs — useful for configuring ~/.cargo/config.toml and CI.
     new cdk.CfnOutput(this, 'DomainName', { value: domain.domainName });
