@@ -1,0 +1,24 @@
+#!/bin/bash
+# Deploy the CodeArtifact CDK stack.
+# Usage:
+#   ./scripts/deploy           — deploys to sandbox
+#   ./scripts/deploy prod      — deploys to prod
+set -e
+
+ENV="${1:-sandbox}"
+
+case "$ENV" in
+  prod|sandbox) ;;
+  *) echo "Unknown environment: '$ENV'. Use 'sandbox' (default) or 'prod'." >&2; exit 1 ;;
+esac
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/../infra"
+
+echo "==> Installing dependencies..."
+npm ci --silent
+
+echo "==> Deploying to ${ENV}..."
+npm run "deploy-${ENV}"
+
+echo "==> Done."
