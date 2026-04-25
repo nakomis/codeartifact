@@ -4,27 +4,26 @@
 # Copy this file into your project and adapt as needed — do not source it
 # from this repo directly (paths break in CI).
 #
-# Your project's .cargo/config.toml must also contain:
+# Your project's .cargo/config.toml must contain:
 #
 #   [registries.nakomis_codeartifact]
 #   index = "sparse+https://artifacts.sandbox.nakomis.com/cargo/cargo/"
-#   credential-provider = "cargo:token"
+#   credential-provider = "cargo:token-from-stdout aws codeartifact get-authorization-token --domain nakomis-sandbox --domain-owner 975050268859 --region eu-west-2 --query authorizationToken --output text"
 #
-# Both keys must be present — Cargo 1.74+ won't associate the credential-provider
-# with a registry that has no index in config.toml (env-var-only index is not enough).
-# The registry name MUST use underscore (nakomis_codeartifact) to match what Cargo
-# derives from the CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_* env vars (hyphens → underscores).
-# The sandbox URL is a sensible default; cargo_authenticate overrides it at runtime.
+# Registry name MUST use underscore (nakomis_codeartifact) — Cargo derives
+# the registry name from CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_* env vars by
+# uppercasing and replacing hyphens with underscores.
+#
+# With token-from-stdout, Cargo calls the AWS CLI automatically and no manual
+# token management is needed for local dev or CI (as long as AWS credentials
+# are configured).
 #
 # Usage in your project's scripts:
-#   source ./scripts/codeartifact.sh
-#   cargo_authenticate [prod]
-#   cargo_publish <package> [prod]
+#   cargo publish -p <package> --registry nakomis_codeartifact
+#   # or use cargo_publish below for a prod/sandbox wrapper
 #
-# Or inline in a CI step:
-#   TOKEN=$(codeartifact_token sandbox)
-#   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_INDEX="sparse+https://artifacts.sandbox.nakomis.com/cargo/cargo/"
-#   export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_TOKEN="Bearer ${TOKEN}"
+# For CI: configure AWS credentials via OIDC (aws-actions/configure-aws-credentials)
+# then run cargo commands directly — no separate auth step needed.
 
 _codeartifact_env() {
   local env="${1:-sandbox}"
@@ -38,38 +37,20 @@ _codeartifact_env() {
   esac
 }
 
-# Echo a raw bearer token (no "Bearer " prefix).
-codeartifact_token() {
-  local profile domain owner region index
-  read -r profile domain owner region index <<< "$(_codeartifact_env "${1:-sandbox}")" || return 1
-  AWS_PROFILE="$profile" aws codeartifact get-authorization-token \
-    --domain "$domain" \
-    --domain-owner "$owner" \
-    --region "$region" \
-    --query authorizationToken \
-    --output text
-}
-
-# Export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_{INDEX,TOKEN} for the current shell.
-# Nothing is written to disk.
-cargo_authenticate() {
-  local env="${1:-sandbox}"
-  local profile domain owner region index token
-  read -r profile domain owner region index <<< "$(_codeartifact_env "$env")" || return 1
-  token=$(AWS_PROFILE="$profile" aws codeartifact get-authorization-token \
-    --domain "$domain" --domain-owner "$owner" --region "$region" \
-    --query authorizationToken --output text) || return 1
-  export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_INDEX="$index"
-  export CARGO_REGISTRIES_NAKOMIS_CODEARTIFACT_TOKEN="Bearer ${token}"
-  echo "==> Authenticated to nakomis_codeartifact (${env}). Token valid for 12 hours." >&2
-}
-
-# Authenticate then publish a crate.
+# Publish a crate to the given environment.
+# Uses cargo:token-from-stdout; no manual token step needed.
 cargo_publish() {
   local package="${1:?Usage: cargo_publish <package> [prod]}"
   local env="${2:-sandbox}"
-  cargo_authenticate "$env" || return 1
-  cargo publish -p "$package" --registry nakomis_codeartifact
+  local profile domain owner region index
+  read -r profile domain owner region index <<< "$(_codeartifact_env "$env")" || return 1
+
+  local cred_provider="cargo:token-from-stdout AWS_PROFILE=${profile} aws codeartifact get-authorization-token --domain ${domain} --domain-owner ${owner} --region ${region} --query authorizationToken --output text"
+
+  echo "==> Publishing ${package} to nakomis_codeartifact (${env})..." >&2
+  cargo publish -p "$package" --registry nakomis_codeartifact \
+    --config "registries.nakomis_codeartifact.index='${index}'" \
+    --config "registries.nakomis_codeartifact.credential-provider='${cred_provider}'"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
