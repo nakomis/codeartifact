@@ -8,20 +8,17 @@ set -e
 ENV="${1:-sandbox}"
 
 case "$ENV" in
-  prod)    export AWS_PROFILE=nakom.is ;;
-  sandbox) export AWS_PROFILE=nakom.is-sandbox ;;
-  *)       echo "Unknown environment: '$ENV'. Use 'sandbox' (default) or 'prod'." >&2; exit 1 ;;
+  prod|sandbox) ;;
+  *) echo "Unknown environment: '$ENV'. Use 'sandbox' (default) or 'prod'." >&2; exit 1 ;;
 esac
 
-export DEPLOY_ENV="$ENV"
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR/.."
+cd "$SCRIPT_DIR/../infra"
 
 echo "==> Installing dependencies..."
 npm ci --silent
 
-echo "==> Deploying CodeArtifact stack to ${ENV} (profile: ${AWS_PROFILE})..."
-npx cdk deploy --all --require-approval never
+echo "==> Deploying to ${ENV}..."
+npm run "deploy-${ENV}"
 
 echo "==> Done."
