@@ -1,8 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
+import { CertificateStack } from '../lib/certificate-stack';
+import { ProxyStack } from '../lib/proxy-stack';
+import * as cm from 'aws-cdk-lib/aws-certificatemanager';
 
-function makeStack(deployEnv: 'sandbox' | 'prod') {
+function makeCodeArtifactStack(deployEnv: 'sandbox' | 'prod') {
   const app = new cdk.App();
   return new CodeArtifactStack(app, 'TestStack', {
     env: { account: '123456789012', region: 'eu-west-2' },
@@ -10,8 +13,28 @@ function makeStack(deployEnv: 'sandbox' | 'prod') {
   });
 }
 
+function makeProxyStack(deployEnv: 'sandbox' | 'prod') {
+  const app = new cdk.App();
+  const certStack = new CertificateStack(app, 'CertStack', {
+    env: { account: '123456789012', region: 'us-east-1' },
+    deployEnv,
+    domainName: deployEnv === 'prod' ? 'artifacts.nakomis.com' : 'artifacts.sandbox.nakomis.com',
+    rootDomain: deployEnv === 'prod' ? 'nakomis.com' : 'sandbox.nakomis.com',
+  });
+  return new ProxyStack(app, 'ProxyStack', {
+    env: { account: '123456789012', region: 'eu-west-2' },
+    deployEnv,
+    certificate: certStack.certificate,
+    domainName: deployEnv === 'prod' ? 'artifacts.nakomis.com' : 'artifacts.sandbox.nakomis.com',
+    rootDomain: deployEnv === 'prod' ? 'nakomis.com' : 'sandbox.nakomis.com',
+    codeArtifactHost: 'nakomis-sandbox-123456789012.d.codeartifact.eu-west-2.amazonaws.com',
+    originPath: '/cargo/cargo/',
+    crossRegionReferences: true,
+  });
+}
+
 describe('CodeArtifactStack (sandbox)', () => {
-  const template = Template.fromStack(makeStack('sandbox'));
+  const template = Template.fromStack(makeCodeArtifactStack('sandbox'));
 
   test('creates a CodeArtifact domain named nakomis-sandbox', () => {
     template.hasResourceProperties('AWS::CodeArtifact::Domain', {
@@ -51,7 +74,7 @@ describe('CodeArtifactStack (sandbox)', () => {
 });
 
 describe('CodeArtifactStack (prod)', () => {
-  const template = Template.fromStack(makeStack('prod'));
+  const template = Template.fromStack(makeCodeArtifactStack('prod'));
 
   test('creates a CodeArtifact domain named nakomis (no suffix)', () => {
     template.hasResourceProperties('AWS::CodeArtifact::Domain', {
@@ -66,5 +89,44 @@ describe('CodeArtifactStack (prod)', () => {
     template.hasResourceProperties('AWS::IAM::ManagedPolicy', {
       ManagedPolicyName: 'CodeArtifactCargoPublish-prod',
     });
+  });
+});
+
+describe('CertificateStack (sandbox)', () => {
+  const app = new cdk.App();
+  const stack = new CertificateStack(app, 'CertStack', {
+    env: { account: '123456789012', region: 'us-east-1' },
+    deployEnv: 'sandbox',
+    domainName: 'artifacts.sandbox.nakomis.com',
+    rootDomain: 'sandbox.nakomis.com',
+  });
+  const template = Template.fromStack(stack);
+
+  test('creates an ACM certificate for the artifacts domain', () => {
+    template.hasResourceProperties('AWS::CertificateManager::Certificate', {
+      DomainName: 'artifacts.sandbox.nakomis.com',
+    });
+  });
+});
+
+describe('ProxyStack (sandbox)', () => {
+  const template = Template.fromStack(makeProxyStack('sandbox'));
+
+  test('creates a CloudFront distribution', () => {
+    template.resourceCountIs('AWS::CloudFront::Distribution', 1);
+  });
+
+  test('distribution uses HTTPS-only viewer protocol', () => {
+    template.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: {
+        DefaultCacheBehavior: {
+          ViewerProtocolPolicy: 'https-only',
+        },
+      },
+    });
+  });
+
+  test('creates A and AAAA Route53 alias records', () => {
+    template.resourceCountIs('AWS::Route53::RecordSet', 2);
   });
 });

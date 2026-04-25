@@ -10,6 +10,12 @@ export interface CodeArtifactStackProps extends cdk.StackProps {
 export class CodeArtifactStack extends cdk.Stack {
   /** ARN of the cargo repository — exported for use by CI stacks. */
   public readonly cargoRepoArn: string;
+  /**
+   * Hostname of the CodeArtifact domain endpoint, e.g.
+   * nakomis-123456789012.d.codeartifact.eu-west-2.amazonaws.com
+   * Pass this to ProxyStack as codeArtifactHost.
+   */
+  public readonly domainHost: string;
 
   constructor(scope: Construct, id: string, props: CodeArtifactStackProps) {
     super(scope, id, props);
@@ -18,6 +24,8 @@ export class CodeArtifactStack extends cdk.Stack {
 
     // One domain per environment so sandbox and prod are fully isolated.
     const domainName = deployEnv === 'prod' ? 'nakomis' : 'nakomis-sandbox';
+
+    this.domainHost = `${domainName}-${this.account}.d.codeartifact.${this.region}.amazonaws.com`;
 
     const domain = new codeartifact.CfnDomain(this, 'Domain', {
       domainName,

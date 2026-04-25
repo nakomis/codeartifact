@@ -2,8 +2,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { CodeArtifactError } from '../lib/codeartifact-error';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
+import { CertificateStack } from '../lib/certificate-stack';
+import { ProxyStack } from '../lib/proxy-stack';
 
 const londonEnv = { env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION } };
+const nvirginiaEnv = { env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: 'us-east-1' } };
 
 const npmEnvironment = process.env.NPM_ENVIRONMENT;
 if (npmEnvironment) {
@@ -24,10 +27,35 @@ if (npmEnvironment !== 'sandbox' && npmEnvironment !== 'prod') {
 
 const deployEnv = npmEnvironment as 'sandbox' | 'prod';
 
+const isProd = deployEnv === 'prod';
+const rootDomain = isProd ? 'nakomis.com' : 'sandbox.nakomis.com';
+const artifactsDomain = `artifacts.${rootDomain}`;
+
 const app = new cdk.App();
 
-new CodeArtifactStack(app, 'CodeArtifactStack', {
+const codeArtifactStack = new CodeArtifactStack(app, 'CodeArtifactStack', {
   ...londonEnv,
   deployEnv,
-  description: `CodeArtifact domain and Cargo registry (${deployEnv})`,
+  description: `CodeArtifact domain and Cargo repository (${deployEnv})`,
+});
+
+const certificateStack = new CertificateStack(app, 'CodeArtifactCertificateStack', {
+  ...nvirginiaEnv,
+  deployEnv,
+  domainName: artifactsDomain,
+  rootDomain,
+  description: `ACM certificate for ${artifactsDomain} (must be in us-east-1 for CloudFront)`,
+  crossRegionReferences: true,
+});
+
+new ProxyStack(app, 'CodeArtifactProxyStack', {
+  ...londonEnv,
+  deployEnv,
+  certificate: certificateStack.certificate,
+  domainName: artifactsDomain,
+  rootDomain,
+  codeArtifactHost: codeArtifactStack.domainHost,
+  originPath: '/cargo/cargo/',
+  description: `CloudFront proxy for ${artifactsDomain} → CodeArtifact (${deployEnv})`,
+  crossRegionReferences: true,
 });
