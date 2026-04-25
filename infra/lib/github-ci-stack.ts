@@ -8,6 +8,8 @@ export interface GithubCiRoleConfig {
   /** Managed policy ARNs to attach to the role. */
   policyArns: string[];
   description?: string;
+  /** Inline policies to embed directly on the role. */
+  inlinePolicies?: { [name: string]: iam.PolicyDocument };
 }
 
 export interface GithubCiStackProps extends cdk.StackProps {
@@ -47,6 +49,7 @@ export class GithubCiStack extends cdk.Stack {
           },
         ),
         description: config.description ?? `Assumed by ${config.repo} GitHub Actions CI (${deployEnv})`,
+        inlinePolicies: config.inlinePolicies,
       });
 
       config.policyArns.forEach((arn, i) => {

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { CodeArtifactError } from '../lib/codeartifact-error';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
 import { CertificateStack } from '../lib/certificate-stack';
@@ -79,7 +80,15 @@ new GithubCiStack(app, 'CodeArtifactGithubCiStack', {
     {
       repo: 'nakomis/codeartifact',
       policyArns: [],
-      description: `Assumed by codeartifact GitHub Actions CI to run cdk synth (${deployEnv})`,
+      description: `Assumed by codeartifact GitHub Actions CI to synth and deploy (${deployEnv})`,
+      inlinePolicies: {
+        CdkDeploy: new iam.PolicyDocument({
+          statements: [new iam.PolicyStatement({
+            actions: ['sts:AssumeRole'],
+            resources: [`arn:aws:iam::${accountId}:role/cdk-hnb659fds-*`],
+          })],
+        }),
+      },
     },
   ],
   description: `GitHub Actions OIDC roles for CodeArtifact access (${deployEnv})`,
