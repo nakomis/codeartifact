@@ -1,0 +1,27 @@
+#!/bin/bash
+# Deploy the CodeArtifact CDK stack.
+# Usage:
+#   ./scripts/deploy           — deploys to sandbox
+#   ./scripts/deploy prod      — deploys to prod
+set -e
+
+ENV="${1:-sandbox}"
+
+case "$ENV" in
+  prod)    export AWS_PROFILE=nakom.is ;;
+  sandbox) export AWS_PROFILE=nakom.is-sandbox ;;
+  *)       echo "Unknown environment: '$ENV'. Use 'sandbox' (default) or 'prod'." >&2; exit 1 ;;
+esac
+
+export DEPLOY_ENV="$ENV"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+echo "==> Installing dependencies..."
+npm ci --silent
+
+echo "==> Deploying CodeArtifact stack to ${ENV} (profile: ${AWS_PROFILE})..."
+npx cdk deploy --all --require-approval never
+
+echo "==> Done."
