@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import * as fs from 'fs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { CodeArtifactError } from '../lib/codeartifact-error';
 import { CodeArtifactStack } from '../lib/codeartifact-stack';
@@ -93,3 +94,7 @@ new GithubCiStack(app, 'CodeArtifactGithubCiStack', {
   ],
   description: `GitHub Actions OIDC roles for CodeArtifact access (${deployEnv})`,
 });
+
+const { version: infraVersion } = JSON.parse(fs.readFileSync('./version.json', 'utf-8'));
+cdk.Tags.of(app).add('MH-Project', 'codeartifact');
+cdk.Tags.of(app).add('MH-Version', infraVersion);
